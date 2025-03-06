@@ -17,6 +17,9 @@ El proyecto pretende ser un simulador de la arquitectura ARMv8, tiene que ser ca
 3. Simulador de referencia (ref_sim_XX)
      * Se puede verificar el valor de registros y de memoria para un determinado rango.
      * El codigo de su simulador se puede probar, tienen que ejecutar las entradas de prueba en su simulador y en el simulador de referencia (ref_sim).
+     * Es posible que necesites otorgarle permisos de ejecución a este archivo antes de ejecutarlo (comando: `chmod +x ref_sim_xx`).
+     * Recuerden que el servidor tiene una arquitectura Intel, por lo que deberán ejecutar el archivo `ref_sim_x86`.
+     * El archivo `ref_sim_arm` está destinado únicamente para su ejecución local en computadoras Mac.
 
 4. **ref**
      * DDI0487B_a_armv8_arm.pdf es el manual de referencia detallado del conjunto de instrucciones ARMv8.
@@ -40,7 +43,10 @@ Ahora deberías tener un archivo ejecutable llamado "sim".
 
 Ahora deberías tener un hexdump del código de máquina ensamblado "addis.x". Repite este paso para el resto de las entradas de prueba.
 
+Es posible que necesites otorgarle permisos de ejecución a este archivo. Los permisos se pueden habilitar con el siguiente comando:  
+`chmod +x asm2hex`
 
+          
 3. Ejecuta el hexdump en el simulador.
 
           src/sim inputs/addis.x
