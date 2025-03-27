@@ -4,6 +4,8 @@
 #include "shell.h"
 #include <stdlib.h>
 
+// docker run --rm -it simulador
+
 void execute_add(uint32_t instr);
 void execute_subs(uint32_t instr);
 void execute_ands(uint32_t instr);
@@ -115,7 +117,7 @@ void process_instruction()
 
     decode_instruction( instr );
 
-    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4; // no siempre es asi (Jojo) (dentro de cada funcion)
 
 }
 //funciona
@@ -261,36 +263,134 @@ void execute_cmp(uint32_t instr) {
 }
 
 void execute_ldur(uint32_t instr) {
+    uint32_t Rt = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    int64_t offset = ((instr >> 10) & 0xFFF); // 12-bit signed offset
 
+    // Sign extend offset if needed
+    if (offset & 0x800) {
+        offset |= 0xFFFFFFFFFFFFF000;
+    }
 
+    int64_t address = CURRENT_STATE.REGS[Rn] + offset;
+    NEXT_STATE.REGS[Rt] = mem_read_32(address);
+    
+    printf("LDUR X%d, [X%d, #%ld]\n", Rt, Rn, offset);
 }
 
 void execute_stur(uint32_t instr) {
-    printf("STUR\n");
+    uint32_t Rt = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    int64_t offset = ((instr >> 10) & 0xFFF); // 12-bit signed offset
+
+    // Sign extend offset if needed
+    if (offset & 0x800) {
+        offset |= 0xFFFFFFFFFFFFF000;
+    }
+
+    int64_t address = CURRENT_STATE.REGS[Rn] + offset;
+    mem_write_32(address, CURRENT_STATE.REGS[Rt]);
+    
+    printf("STUR X%d, [X%d, #%ld]\n", Rt, Rn, offset);
 }
 
 void execute_sturb(uint32_t instr) {
-    printf("STURB\n");
+    uint32_t Rt = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    int64_t offset = ((instr >> 10) & 0xFFF); // 12-bit signed offset
+
+    // Sign extend offset if needed
+    if (offset & 0x800) {
+        offset |= 0xFFFFFFFFFFFFF000;
+    }
+
+    int64_t address = CURRENT_STATE.REGS[Rn] + offset;
+    uint8_t value = CURRENT_STATE.REGS[Rt] & 0xFF; // Extraer los primeros 8 bits
+
+    mem_write_8(address, value); // Escribir solo 1 byte en memoria
+    
+    printf("STURB X%d, [X%d, #%ld]\n", Rt, Rn, offset);
 }
 
+
 void execute_sturh(uint32_t instr) {
-    printf("STURH\n");
+    uint32_t Rt = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    int64_t offset = ((instr >> 10) & 0xFFF); // 12-bit signed offset
+
+    // Sign extend offset if needed
+    if (offset & 0x800) {
+        offset |= 0xFFFFFFFFFFFFF000;
+    }
+
+    int64_t address = CURRENT_STATE.REGS[Rn] + offset;
+    uint16_t value = CURRENT_STATE.REGS[Rt] & 0xFFFF; // Extraer los primeros 16 bits
+
+    mem_write_16(address, value); // Escribir solo 2 bytes en memoria
+    
+    printf("STURH W%d, [X%d, #%ld]\n", Rt, Rn, offset);
 }
 
 void execute_ldurb(uint32_t instr) {
-    printf("LDURB\n");
+    uint32_t Rt = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    int64_t offset = ((instr >> 10) & 0xFFF); // 12-bit signed offset
+
+    // Sign extend offset if needed
+    if (offset & 0x800) {
+        offset |= 0xFFFFFFFFFFFFF000;
+    }
+
+    int64_t address = CURRENT_STATE.REGS[Rn] + offset;
+    uint8_t value = mem_read_8(address); // Leer solo 1 byte de memoria
+
+    NEXT_STATE.REGS[Rt] = (uint64_t)value; // Guardar en el registro con padding de ceros
+    
+    printf("LDURB W%d, [X%d, #%ld]\n", Rt, Rn, offset);
 }
 
 void execute_ldurh(uint32_t instr) {
-    printf("LDURH\n");
+    uint32_t Rt = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    int64_t offset = ((instr >> 10) & 0xFFF); // 12-bit signed offset
+
+    // Sign extend offset if needed
+    if (offset & 0x800) {
+        offset |= 0xFFFFFFFFFFFFF000;
+    }
+
+    int64_t address = CURRENT_STATE.REGS[Rn] + offset;
+    uint16_t value = mem_read_16(address); // Leer solo 2 bytes de memoria
+
+    NEXT_STATE.REGS[Rt] = (uint64_t)value; // Guardar en el registro con padding de ceros
+    
+    printf("LDURH W%d, [X%d, #%ld]\n", Rt, Rn, offset);
 }
 
 void execute_b(uint32_t instr) {
-    printf("B\n");
+    int32_t imm26 = (instr & 0x03FFFFFF); // Los primeros 26 bits del inmediato
+    if (imm26 & 0x02000000) { // Si el bit más significativo es 1, realizar una extensión de signo
+        imm26 |= 0xFC000000;
+    }
+    
+    // Desplazar 2 bits a la derecha (dividir por 4) para la dirección real de salto
+    imm26 = imm26 << 2;
+
+    int64_t target_address = CURRENT_STATE.PC + imm26;
+
+    NEXT_STATE.PC = target_address;
+
+    printf("B target\n");
 }
 
 void execute_br(uint32_t instr) {
-    printf("BR\n");
+    uint32_t Rn = (instr >> 5) & 0x1F; // Obtener el número de registro Xn
+
+    int64_t target_address = CURRENT_STATE.REGS[Rn]; // Dirección de destino almacenada en el registro Xn
+
+    NEXT_STATE.PC = target_address; // Actualizar el contador de programa con la dirección de salto
+
+    printf("BR X%d\n", Rn);
 }
 
 void execute_bcond(uint32_t instr) {
@@ -344,8 +444,33 @@ void execute_hlt(uint32_t instr) {
     RUN_BIT = 0;
 }
 
-void execute_lsl_lsr(uint32_t instr) {
+void execute_lsr(uint32_t instr) {
+    uint32_t Rd = instr & 0x1F;           
+    uint32_t Rn = (instr >> 5) & 0x1F;    
+    uint32_t imm6 = (instr >> 10) & 0x3F; 
 
+    int64_t op1 = CURRENT_STATE.REGS[Rn]; 
+    int64_t result = op1 >> imm6;         
 
+    NEXT_STATE.REGS[Rd] = result;         
+    NEXT_STATE.FLAG_Z = (result == 0);    
+    NEXT_STATE.FLAG_N = (result < 0);     
+
+    printf("LSR X%d, X%d, #%d\n", Rd, Rn, imm6); 
+}
+
+void execute_lsl(uint32_t instr) {
+    uint32_t Rd = instr & 0x1F;          
+    uint32_t Rn = (instr >> 5) & 0x1F;    
+    uint32_t imm6 = (instr >> 10) & 0x3F; 
+
+    int64_t op1 = CURRENT_STATE.REGS[Rn]; 
+    int64_t result = op1 << imm6;         
+
+    NEXT_STATE.REGS[Rd] = result;         
+    NEXT_STATE.FLAG_Z = (result == 0);    
+    NEXT_STATE.FLAG_N = (result < 0);     
+
+    printf("LSL X%d, X%d, #%d\n", Rd, Rn, imm6);
 }
 
