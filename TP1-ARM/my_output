@@ -1,9 +1,0 @@
-ARM Simulator
-
-Read 0 words from program into memory.
-
-ARM-SIM> 
-Simulating...
-
-Fetched instruction: 0x0
-Instrucción desconocida: 0x00000000
