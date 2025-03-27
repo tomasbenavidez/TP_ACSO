@@ -120,8 +120,6 @@ void process_instruction()
 
     decode_instruction( instr );
 
-    // NEXT_STATE.PC = CURRENT_STATE.PC + 4; // no siempre es asi (Jojo) (dentro de cada funcion)
-
 }
 //funciona
 void execute_add(uint32_t instr) {
@@ -233,7 +231,7 @@ void execute_eor(uint32_t instr) {
 
 }
 
-// crear test
+// funciona
 void execute_orr(uint32_t instr) {
 
     uint32_t Rd = instr & 0x1F;
@@ -251,7 +249,7 @@ void execute_orr(uint32_t instr) {
 
 }
 
-// crear test
+// Funciona
 void execute_mul(uint32_t instr) {
 
     uint32_t Rd = instr & 0x1F;
@@ -269,6 +267,7 @@ void execute_mul(uint32_t instr) {
 
 }
 
+//funciona 
 void execute_cmp(uint32_t instr) {
     uint32_t Rn = (instr >> 5) & 0x1F;
     uint32_t Rm = (instr >> 16) & 0x1F;
@@ -427,7 +426,58 @@ void execute_br(uint32_t instr) {
 }
 
 void execute_bcond(uint32_t instr) {
+    uint32_t cond = (instr >> 24) & 0xF; // Obtener el código de condición de 4 bits
+    int32_t imm19 = (instr & 0x00FFFFE0); // Los primeros 19 bits del inmediato
+    if (imm19 & 0x00080000) { // Si el bit más significativo es 1, realizar una extensión de signo
+        imm19 |= 0xFFE00000;
+    }
+    
+    // Desplazar 2 bits a la derecha (dividir por 4) para la dirección real de salto
+    imm19 = imm19 << 2;
 
+    int64_t target_address = CURRENT_STATE.PC + imm19;
+
+    switch (cond) {
+        case 0b0000: // BEQ
+            if (CURRENT_STATE.FLAG_Z) {
+                NEXT_STATE.PC = target_address;
+            }
+            break;
+        case 0b0001: // BNE
+            if (!CURRENT_STATE.FLAG_Z) {
+                NEXT_STATE.PC = target_address;
+            }
+            break;
+        case 0b0010: // BGT (Mayor que): Z == 0 y N == V
+            if (!CURRENT_STATE.FLAG_Z && (CURRENT_STATE.FLAG_N == 0)) {
+                NEXT_STATE.PC = target_address;
+            }
+            break;
+        case 0b0011: // BLT (Menor que): N != V
+            if (CURRENT_STATE.FLAG_N != 0) {
+                NEXT_STATE.PC = target_address;
+            }
+            break;
+        case 0b0100: // BGE (Mayor o igual que): Z == 1 o N == V
+            if (CURRENT_STATE.FLAG_Z || (CURRENT_STATE.FLAG_N == 0)) {
+                NEXT_STATE.PC = target_address;
+
+            }
+            break;
+        case 0b0101: // BLE (Menor o igual que): Z == 1 o N != V
+            if (CURRENT_STATE.FLAG_Z || (CURRENT_STATE.FLAG_N != 0)) {
+                NEXT_STATE.PC = target_address;
+            }
+            break;
+
+        default:
+            printf("Condición desconocida: 0x%X\n", cond);
+            exit(1);
+
+    }
+
+    printf("B%s #%ld\n", cond == 0xE ? "" : cond == 0x0 ? "EQ" : cond == 0x1 ? "NE" : cond == 0xA ? "GT" : 
+        cond == 0xB ? "GE" : cond == 0xC ? "LT" : cond == 0xD ? "LE" : "???", imm19);
 }
 
 //funciona
@@ -515,4 +565,3 @@ void execute_lsl(uint32_t instr) {
     NEXT_STATE.PC = CURRENT_STATE.PC + 4;
 
 }
-
