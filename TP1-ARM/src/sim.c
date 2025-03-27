@@ -2,72 +2,145 @@
 #include <assert.h>
 #include <string.h>
 #include "shell.h"
+#include <stdlib.h>
 
-// Declaración de la función ADDis
-void ADDis(uint32_t Rd, uint32_t Rn, uint32_t imm12, uint32_t shift);
+void execute_add(uint32_t instr);
+void execute_subs(uint32_t instr);
+void execute_ands(uint32_t instr);
+void execute_eor(uint32_t instr);
+void execute_orr(uint32_t instr);
+void execute_mul(uint32_t instr);
+void execute_addis(uint32_t instr);
+void execute_subis(uint32_t instr);
+void execute_ldur(uint32_t instr);
+void execute_stur(uint32_t instr);
+void execute_sturb(uint32_t instr);
+void execute_sturh(uint32_t instr);
+void execute_ldurb(uint32_t instr);
+void execute_ldurh(uint32_t instr);
+void execute_b(uint32_t instr);
+void execute_br(uint32_t instr);
+void execute_bcond(uint32_t instr);
+void execute_movz(uint32_t instr);
+void execute_cbz(uint32_t instr);
+void execute_cbnz(uint32_t instr);
+void execute_hlt(uint32_t instr);
+void execute_lsl_lsr(uint32_t instr);
 
-// Declaración de la función ADD
-void ADD(uint32_t Rd, uint32_t Rn, uint32_t Rm);        
+void execute_cmp(uint32_t instr);
 
-void process_instruction()
-{
-    /* execute one instruction here. You should use CURRENT_STATE and modify
-     * values in NEXT_STATE. You can call mem_read_32() and mem_write_32() to
-     * access memory. 
-     * */
 
-    // Fetch instruction
-    uint32_t instr = mem_read_32(NEXT_STATE.PC);
-    printf("Fetched instruction: 0x%X\n", instr);
 
-    // Decode instruction
-    uint32_t opcode = (instr >> 21) & 0x7FF;
+void decode_instruction(uint32_t instr) {
 
-    //CHEQUEAR SI ESTAN BIEN LAS MASCARAS
-    uint32_t Rd = instr & 0x1F;
-    uint32_t Rn = (instr >> 5) & 0x1F;
-    uint32_t imm12 = (instr >> 10) & 0xFFF;
-    uint32_t shift = (instr >> 22) & 0x1;
+    uint32_t op26 = (instr >> 26) & 0x3F;     // bits [31:26]
+    uint32_t op24 = (instr >> 24) & 0xFF;     // bits [31:24]
+    uint32_t op21 = (instr >> 21) & 0x7FF;    // bits [31:21]
+    uint32_t op10 = (instr >> 10) & 0x3FFFFF; // bits [31:10]
+    uint32_t op  = (instr >> 22) & 0x3FF;     // bits [31:22] (p/ instrucciones I)
 
-    printf("Decoded instruction - opcode: 0x%X, Rd: %d, Rn: %d, imm12: %d, shift: %d\n", opcode, Rd, Rn, imm12, shift);
+    
+    switch (op21) {
 
-    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+        case 0x6A2: execute_hlt(instr); break;    // HLT
+        // 🟩 R-type (Register)
+        case 0x558: execute_add(instr); break;    // ADDS Xd, Xn, Xm
+        case 0x758: execute_subs(instr); break;    // SUBS
+        case 0x750: execute_ands(instr); break;    // ANDS
+        case 0x650: execute_eor(instr); break;     // EOR
+        case 0x550: execute_orr(instr); break;     // ORR
+        case 0x698: execute_mul(instr); break;     // MUL
+        case 0x3D2: execute_cmp(instr); break;     // CMP
 
-    switch (opcode) {
-        case 0x6A2: // HLT
-            RUN_BIT = 0;
-            return;
-        case 0x558: // ADD Xd, Xn, Xm (Extended register)
-            ADD(Rd, Rn, imm12);
-            printf(" ADD X%d, X%d, X%d (Extended register)\n" , Rd, Rn, imm12);
-            return;
-        case 0x588: // ADDS Xd, Xn, #imm12 (Extended immediate)
-            printf(" ADD immediate\n");
-            ADDis(Rd, Rn, imm12, shift);
-            return;
-        case 0x758: // SUB Xd, Xn, Xm (Extended register)
-            printf(" SUB Xd, Xn, Xm (Extended register)\n");
-            return;
-        case 0x788: // SUBS Xd, Xn, #imm12 (Extended immediate)
-            printf(" SUBS Xd, Xn, #imm12 (Extended immediate)\n");
-            return;
-        case 0x750: // ANDS Xd, Xn, #imm12 (Extended immediate)
-            printf(" ANDS Xd, Xn, #imm12 (Extended immediate)\n");
-            return;
-        case 0x650: // EOR Xd, Xn, #imm12 (Extended immediate)
-            printf(" EOR Xd, Xn, #imm12 (Extended immediate)\n");
-            return;
-        //implementar caso donde no haya mas instruccionesyy
-        
+        // 🟨 I-type (Immediate)
+        case 0x588:  execute_addis(instr); break;   // ADDIS (ADDS with imm)
+        case 0x788:  execute_subis(instr); break;   // SUBIS (SUBS with imm)
+
+        // 🟦 D-type (Load/Store)
+        case 0x7C2: execute_ldur(instr); break;    // LDUR
+        case 0x7C0: execute_stur(instr); break;    // STUR
+        case 0x1C0: execute_sturb(instr); break;   // STURB
+        case 0x3C0: execute_sturh(instr); break;   // STURH
+        case 0x1C2: execute_ldurb(instr); break;   // LDURB
+        case 0x3C2: execute_ldurh(instr); break;   // LDURH
+
+        // 🟥 B-type (Unconditional Branch)
         default:
-            printf("Instruction not implemented: 0x%X\n", opcode);
-            RUN_BIT = 0;
+            if (op26 == 0b000101) {
+                execute_b(instr); // B label
+            } else if (op10 == 0b1101011000011111000000) {
+                execute_br(instr); // BR Xn
+            }
+
+            // 🟪 CB-type (Conditional Branch)
+            else if (op24 == 0b01010100) {
+                execute_bcond(instr); // BEQ, BNE, BGT, etc.
+            }
+
+            // 🟫 IW-type (MOVZ)
+            else if ((instr >> 23) == 0b110100101) {
+                execute_movz(instr); // MOVZ
+            }
+
+            // 🟥 CBZ/CBNZ
+            else if ((instr >> 24) == 0b10110100) {
+                execute_cbz(instr); // CBZ
+            } else if ((instr >> 24) == 0b10110101) {
+                execute_cbnz(instr); // CBNZ
+            }
+
+            // 🟥 HLT
+            else if ((instr >> 5) == 0b1101010001010000000000) {
+                execute_hlt(instr); // HLT
+            }
+
+            // 🟩 Shift (Immediate) - LSL/LSR (aliases de UBFM)
+            else if ((instr >> 22) == 0b110100101) {
+                execute_lsl_lsr(instr); // LSL, LSR
+            }
+
+            else {
+                printf("Instrucción desconocida: 0x%08X\n", instr);
+                exit(1);
+            }
+
             break;
     }
 }
 
-// Implementar la función ADDis
-void ADDis(uint32_t Rd, uint32_t Rn, uint32_t imm12, uint32_t shift) {
+void process_instruction()
+{
+    uint32_t instr = mem_read_32(NEXT_STATE.PC);
+    printf("Fetched instruction: 0x%X\n", instr);
+
+    decode_instruction( instr );
+
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
+}
+//funciona
+void execute_add(uint32_t instr) {
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t Rm = (instr >> 16) & 0x1F;
+
+
+    int64_t op1 = CURRENT_STATE.REGS[Rn];
+    int64_t op2 = CURRENT_STATE.REGS[Rm];
+    int64_t result = op1 + op2;
+    NEXT_STATE.REGS[Rd] = result;
+    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_N = (result < 0);
+    printf("ADD X%d, X%d, X%d\n", Rd, Rn, Rm);
+}
+
+//funciona
+void execute_addis(uint32_t instr) {
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t imm12 = (instr >> 10) & 0xFFF;
+    uint32_t shift = (instr >> 22) & 0x1;
+    
     if (shift == 1) {
         imm12 = imm12 << 12;
     }
@@ -77,15 +150,202 @@ void ADDis(uint32_t Rd, uint32_t Rn, uint32_t imm12, uint32_t shift) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("ADD X%d, X%d, #%d\n", Rd, Rn, imm12);
-    // printf("X%d = %d\n", Rd, result);
 }
 
-void ADD(uint32_t Rd, uint32_t Rn, uint32_t Rm) {
+//funciona
+void execute_subs(uint32_t instr) {
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t Rm = (instr >> 16) & 0x1F;
+
     int64_t op1 = CURRENT_STATE.REGS[Rn];
     int64_t op2 = CURRENT_STATE.REGS[Rm];
-    int64_t result = op1 + op2;
+    int64_t result = op1 - op2;
     NEXT_STATE.REGS[Rd] = result;
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
-    printf("ADD X%d, X%d, X%d\n", Rd, Rn, Rm);
+    printf("SUB X%d, X%d, X%d\n", Rd, Rn, Rm);
 }
+
+//funciona
+void execute_subis(uint32_t instr) {
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t imm12 = (instr >> 10) & 0xFFF;
+    uint32_t shift = (instr >> 22) & 0x1;
+
+    if (shift == 1) {
+        imm12 = imm12 << 12;
+    }
+    int64_t op1 = CURRENT_STATE.REGS[Rn];
+    int64_t result = op1 - (int64_t)imm12;
+    NEXT_STATE.REGS[Rd] = result;
+    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_N = (result < 0);
+    printf("SUB X%d, X%d, #%d\n", Rd, Rn, imm12);}
+
+//funciona
+void execute_ands(uint32_t instr) {
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t Rm = (instr >> 16) & 0x1F;
+
+    int64_t op1 = CURRENT_STATE.REGS[Rn];
+    int64_t op2 = CURRENT_STATE.REGS[Rm];
+    int64_t result = op1 & op2;
+    NEXT_STATE.REGS[Rd] = result;
+    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_N = (result < 0);
+    printf("AND X%d, X%d, X%d\n", Rd, Rn, Rm);
+}
+
+//funciona (a chequear igual)
+void execute_eor(uint32_t instr) {
+
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t Rm = (instr >> 16) & 0x1F;
+
+    int64_t op1 = CURRENT_STATE.REGS[Rn];
+    int64_t op2 = CURRENT_STATE.REGS[Rm];
+    int64_t result = op1 ^ op2;
+    NEXT_STATE.REGS[Rd] = result;
+    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_N = (result < 0);
+    printf("EOR X%d, X%d, X%d\n", Rd, Rn, Rm);
+}
+
+// crear test
+void execute_orr(uint32_t instr) {
+
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t Rm = (instr >> 16) & 0x1F;
+
+    int64_t op1 = CURRENT_STATE.REGS[Rn];
+    int64_t op2 = CURRENT_STATE.REGS[Rm];
+    int64_t result = op1 | op2;
+    NEXT_STATE.REGS[Rd] = result;
+    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_N = (result < 0);
+    printf("ORR X%d, X%d, X%d\n", Rd, Rn, Rm);
+}
+
+// crear test
+void execute_mul(uint32_t instr) {
+
+    uint32_t Rd = instr & 0x1F;
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t Rm = (instr >> 16) & 0x1F;
+
+    int64_t op1 = CURRENT_STATE.REGS[Rn];
+    int64_t op2 = CURRENT_STATE.REGS[Rm];
+    int64_t result = op1 * op2;
+    NEXT_STATE.REGS[Rd] = result;
+    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_N = (result < 0);
+    printf("MUL X%d, X%d, X%d\n", Rd, Rn, Rm);
+
+}
+
+void execute_cmp(uint32_t instr) {
+    uint32_t Rn = (instr >> 5) & 0x1F;
+    uint32_t Rm = (instr >> 16) & 0x1F;
+
+    int64_t op1 = CURRENT_STATE.REGS[Rn];
+    int64_t op2 = CURRENT_STATE.REGS[Rm];
+    int64_t result = op1 - op2;
+    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_N = (result < 0);
+    printf("CMP X%d, X%d\n", Rn, Rm);
+}
+
+void execute_ldur(uint32_t instr) {
+
+
+}
+
+void execute_stur(uint32_t instr) {
+    printf("STUR\n");
+}
+
+void execute_sturb(uint32_t instr) {
+    printf("STURB\n");
+}
+
+void execute_sturh(uint32_t instr) {
+    printf("STURH\n");
+}
+
+void execute_ldurb(uint32_t instr) {
+    printf("LDURB\n");
+}
+
+void execute_ldurh(uint32_t instr) {
+    printf("LDURH\n");
+}
+
+void execute_b(uint32_t instr) {
+    printf("B\n");
+}
+
+void execute_br(uint32_t instr) {
+    printf("BR\n");
+}
+
+void execute_bcond(uint32_t instr) {
+
+    
+
+}
+
+//funciona
+void execute_movz(uint32_t instr) {
+    //movz X1, 10 (descripción: X1 = 10, Solo hay que implementar la condición donde hw = 0, osea 
+    //shift es cero.) 
+    uint32_t Rd = instr & 0x1F;
+    uint32_t imm16 = (instr >> 5) & 0xFFFF;
+    uint32_t hw = (instr >> 21) & 0x3;
+    uint32_t shift = (instr >> 22) & 0x1;
+
+    if (shift == 0) {
+        NEXT_STATE.REGS[Rd] = imm16;
+    }
+    printf("MOVZ X%d, #%d\n", Rd, imm16);
+
+}
+
+// crear test
+void execute_cbz(uint32_t instr) {
+    
+    uint32_t Rt = (instr >> 5) & 0x1F;
+    uint32_t imm19 = (instr >> 5) & 0x7FFFF;
+
+    printf("CBZ X%d, #%d\n", Rt, imm19);
+    if (CURRENT_STATE.REGS[Rt] == 0) {
+        NEXT_STATE.PC = CURRENT_STATE.PC + (imm19 << 2);
+    }
+}
+
+// crear test
+void execute_cbnz(uint32_t instr) {
+
+    uint32_t Rt = (instr >> 5) & 0x1F;
+    uint32_t imm19 = (instr >> 5) & 0x7FFFF;
+
+    printf("CBNZ X%d, #%d\n", Rt, imm19);
+    if (CURRENT_STATE.REGS[Rt] != 0) {
+        NEXT_STATE.PC = CURRENT_STATE.PC + (imm19 << 2);
+    }
+}
+
+void execute_hlt(uint32_t instr) {
+    printf("HLT\n");
+    RUN_BIT = 0;
+}
+
+void execute_lsl_lsr(uint32_t instr) {
+
+
+}
+
