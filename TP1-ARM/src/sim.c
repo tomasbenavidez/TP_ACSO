@@ -27,7 +27,8 @@ void execute_movz(uint32_t instr);
 void execute_cbz(uint32_t instr);
 void execute_cbnz(uint32_t instr);
 void execute_hlt(uint32_t instr);
-void execute_lsl_lsr(uint32_t instr);
+void execute_lsl(uint32_t instr);
+void execute_lsr(uint32_t instr);
 
 void execute_cmp(uint32_t instr);
 
@@ -98,7 +99,9 @@ void decode_instruction(uint32_t instr) {
 
             // 🟩 Shift (Immediate) - LSL/LSR (aliases de UBFM)
             else if ((instr >> 22) == 0b110100101) {
-                execute_lsl_lsr(instr); // LSL, LSR
+                execute_lsl(instr); // LSL
+            } else if ((instr >> 22) == 0b110100100) {
+                execute_lsr(instr); // LSR
             }
 
             else {
@@ -117,7 +120,7 @@ void process_instruction()
 
     decode_instruction( instr );
 
-    NEXT_STATE.PC = CURRENT_STATE.PC + 4; // no siempre es asi (Jojo) (dentro de cada funcion)
+    // NEXT_STATE.PC = CURRENT_STATE.PC + 4; // no siempre es asi (Jojo) (dentro de cada funcion)
 
 }
 //funciona
@@ -134,6 +137,8 @@ void execute_add(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("ADD X%d, X%d, X%d\n", Rd, Rn, Rm);
+
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
 }
 
 //funciona
@@ -152,6 +157,8 @@ void execute_addis(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("ADD X%d, X%d, #%d\n", Rd, Rn, imm12);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 //funciona
@@ -167,6 +174,8 @@ void execute_subs(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("SUB X%d, X%d, X%d\n", Rd, Rn, Rm);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 //funciona
@@ -184,7 +193,10 @@ void execute_subis(uint32_t instr) {
     NEXT_STATE.REGS[Rd] = result;
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
-    printf("SUB X%d, X%d, #%d\n", Rd, Rn, imm12);}
+    printf("SUB X%d, X%d, #%d\n", Rd, Rn, imm12);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
+}
 
 //funciona
 void execute_ands(uint32_t instr) {
@@ -199,6 +211,8 @@ void execute_ands(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("AND X%d, X%d, X%d\n", Rd, Rn, Rm);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 //funciona (a chequear igual)
@@ -215,6 +229,8 @@ void execute_eor(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("EOR X%d, X%d, X%d\n", Rd, Rn, Rm);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 // crear test
@@ -231,6 +247,8 @@ void execute_orr(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("ORR X%d, X%d, X%d\n", Rd, Rn, Rm);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 // crear test
@@ -247,6 +265,7 @@ void execute_mul(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("MUL X%d, X%d, X%d\n", Rd, Rn, Rm);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
 
 }
 
@@ -260,6 +279,8 @@ void execute_cmp(uint32_t instr) {
     NEXT_STATE.FLAG_Z = (result == 0);
     NEXT_STATE.FLAG_N = (result < 0);
     printf("CMP X%d, X%d\n", Rn, Rm);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_ldur(uint32_t instr) {
@@ -276,6 +297,8 @@ void execute_ldur(uint32_t instr) {
     NEXT_STATE.REGS[Rt] = mem_read_32(address);
     
     printf("LDUR X%d, [X%d, #%ld]\n", Rt, Rn, offset);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_stur(uint32_t instr) {
@@ -292,6 +315,8 @@ void execute_stur(uint32_t instr) {
     mem_write_32(address, CURRENT_STATE.REGS[Rt]);
     
     printf("STUR X%d, [X%d, #%ld]\n", Rt, Rn, offset);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_sturb(uint32_t instr) {
@@ -307,9 +332,11 @@ void execute_sturb(uint32_t instr) {
     int64_t address = CURRENT_STATE.REGS[Rn] + offset;
     uint8_t value = CURRENT_STATE.REGS[Rt] & 0xFF; // Extraer los primeros 8 bits
 
-    mem_write_8(address, value); // Escribir solo 1 byte en memoria
+    mem_write_32(address, value); // Escribir solo 1 byte en memoria
     
     printf("STURB X%d, [X%d, #%ld]\n", Rt, Rn, offset);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 
@@ -326,9 +353,11 @@ void execute_sturh(uint32_t instr) {
     int64_t address = CURRENT_STATE.REGS[Rn] + offset;
     uint16_t value = CURRENT_STATE.REGS[Rt] & 0xFFFF; // Extraer los primeros 16 bits
 
-    mem_write_16(address, value); // Escribir solo 2 bytes en memoria
+    mem_write_32(address, value); // Escribir solo 2 bytes en memoria
     
     printf("STURH W%d, [X%d, #%ld]\n", Rt, Rn, offset);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_ldurb(uint32_t instr) {
@@ -342,11 +371,13 @@ void execute_ldurb(uint32_t instr) {
     }
 
     int64_t address = CURRENT_STATE.REGS[Rn] + offset;
-    uint8_t value = mem_read_8(address); // Leer solo 1 byte de memoria
+    uint8_t value = mem_read_32(address); // Leer solo 1 byte de memoria
 
     NEXT_STATE.REGS[Rt] = (uint64_t)value; // Guardar en el registro con padding de ceros
     
     printf("LDURB W%d, [X%d, #%ld]\n", Rt, Rn, offset);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_ldurh(uint32_t instr) {
@@ -360,11 +391,13 @@ void execute_ldurh(uint32_t instr) {
     }
 
     int64_t address = CURRENT_STATE.REGS[Rn] + offset;
-    uint16_t value = mem_read_16(address); // Leer solo 2 bytes de memoria
+    uint16_t value = mem_read_32(address); // Leer solo 2 bytes de memoria
 
     NEXT_STATE.REGS[Rt] = (uint64_t)value; // Guardar en el registro con padding de ceros
     
     printf("LDURH W%d, [X%d, #%ld]\n", Rt, Rn, offset);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_b(uint32_t instr) {
@@ -395,8 +428,6 @@ void execute_br(uint32_t instr) {
 
 void execute_bcond(uint32_t instr) {
 
-    
-
 }
 
 //funciona
@@ -413,6 +444,8 @@ void execute_movz(uint32_t instr) {
     }
     printf("MOVZ X%d, #%d\n", Rd, imm16);
 
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 // crear test
@@ -425,6 +458,8 @@ void execute_cbz(uint32_t instr) {
     if (CURRENT_STATE.REGS[Rt] == 0) {
         NEXT_STATE.PC = CURRENT_STATE.PC + (imm19 << 2);
     }
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 // crear test
@@ -437,10 +472,13 @@ void execute_cbnz(uint32_t instr) {
     if (CURRENT_STATE.REGS[Rt] != 0) {
         NEXT_STATE.PC = CURRENT_STATE.PC + (imm19 << 2);
     }
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_hlt(uint32_t instr) {
     printf("HLT\n");
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
     RUN_BIT = 0;
 }
 
@@ -457,6 +495,8 @@ void execute_lsr(uint32_t instr) {
     NEXT_STATE.FLAG_N = (result < 0);     
 
     printf("LSR X%d, X%d, #%d\n", Rd, Rn, imm6); 
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
 void execute_lsl(uint32_t instr) {
@@ -472,5 +512,7 @@ void execute_lsl(uint32_t instr) {
     NEXT_STATE.FLAG_N = (result < 0);     
 
     printf("LSL X%d, X%d, #%d\n", Rd, Rn, imm6);
+    NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+
 }
 
