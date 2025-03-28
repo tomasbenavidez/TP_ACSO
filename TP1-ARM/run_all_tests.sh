@@ -49,6 +49,9 @@ EOF
     awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_rdump_output
     awk '/memdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_memdump_output
 
+    # Añadir espacio en blanco para la legibilidad entre pruebas
+    echo ""
+
     # Ejecutar el simulador paso a paso y guardar la salida
     echo "Ejecutando paso a paso en sim_x86 para $file_name..."
     for ((i=1; i<=instruction_count; i++)); do
@@ -66,16 +69,17 @@ EOF
     # Comparar las salidas de rdump
     echo "Comparando rdump para $file_name..."
     if ! diff ref_rdump_output my_rdump_output > /dev/null; then
-        # Si las salidas de rdump no coinciden, agregar el archivo a la lista de no coincidentes
         non_matching_files+=("$file_name (rdump)")
     fi
 
     # Comparar las salidas de memdump
     echo "Comparando memdump para $file_name..."
     if ! diff ref_memdump_output my_memdump_output > /dev/null; then
-        # Si las salidas de memdump no coinciden, agregar el archivo a la lista de no coincidentes
         non_matching_files+=("$file_name (memdump)")
     fi
+
+    # Añadir espacio en blanco entre archivos procesados
+    echo ""
 done
 
 # Si hay archivos que no coinciden, mostrarlos
