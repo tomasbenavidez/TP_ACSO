@@ -1,24 +1,24 @@
 .text
 
-MOV R0, #5     
-MOV R1, #10    
-CMP R0, R1     
+MOV X0, #5     
+MOV X1, #10    
+CMP X0, X1     
 BGT greater    
 BLT less       
 BEQ equal      
 
 greater:
-    MOV R2, #1  
+    MOV X2, #1  
     B end
 
 less:
-    MOV R2, #2  
+    MOV X2, #2  
     B end
 
 equal:
-    MOV R2, #0  
+    MOV X2, #0  
     HLT 0
 
 end:
-    MOV R7, #1  
+    MOV X7, #1  
     HLT 0

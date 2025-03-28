@@ -12,3 +12,5 @@ foo:
     ADDS X3, X0, 10
 
     HLT 0
+
+    

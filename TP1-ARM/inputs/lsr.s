@@ -10,3 +10,4 @@ bar:
 foo:
     MOV X4, 42                  // Some operation if branch is taken
     HLT 0
+    

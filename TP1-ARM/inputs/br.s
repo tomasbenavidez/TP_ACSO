@@ -8,3 +8,4 @@ adds X1, X11, X0
 target:
     mov X2, #42        
     HLT 0
+    

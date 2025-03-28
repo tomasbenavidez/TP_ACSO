@@ -12,3 +12,4 @@ foo:
     ADDS X4, X0, 10 // Should not execute if branch works
 
     HLT 0
+    
