@@ -477,7 +477,7 @@ void execute_bcond(uint32_t instr) {
 
     }
 
-    printf("B%s #%ld\n", cond == 0xE ? "" : cond == 0x0 ? "EQ" : cond == 0x1 ? "NE" : cond == 0xA ? "GT" : 
+    printf("B%s #%d\n", cond == 0xE ? "" : cond == 0x0 ? "EQ" : cond == 0x1 ? "NE" : cond == 0xA ? "GT" : 
         cond == 0xB ? "GE" : cond == 0xC ? "LT" : cond == 0xD ? "LE" : "???", imm19);
 }
 
