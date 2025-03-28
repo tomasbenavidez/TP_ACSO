@@ -42,7 +42,11 @@ void decode_instruction(uint32_t instr) {
     uint32_t op10 = (instr >> 10) & 0x3FFFFF; // bits [31:10]
     uint32_t op  = (instr >> 22) & 0x3FF;     // bits [31:22] (p/ instrucciones I)
 
-    
+    // UBFM detection logic
+    uint32_t op_ubfm = (instr >> 22) & 0x3FF; // Bits [31:22]
+    uint32_t immr = (instr >> 16) & 0x3F;     // Bits [21:16]
+    uint32_t imms = (instr >> 10) & 0x3F;     // Bits [15:10]
+
     switch (op21) {
 
         case 0x6A2: execute_hlt(instr); break;    // HLT
@@ -98,10 +102,12 @@ void decode_instruction(uint32_t instr) {
             }
 
             // 🟩 Shift (Immediate) - LSL/LSR (aliases de UBFM)
-            else if (((instr >> 23) == 0b110100100) && ((instr & 0x3F) == 0x3F)) {
-                execute_lsl(instr); // Detecta UBFM cuando actúa como LSL
-            } else if (((instr >> 23) == 0b110100100) && ((instr & 0x3F) == 0x00)) {
-                execute_lsr(instr); // Detecta UBFM cuando actúa como LSR
+            else if (op_ubfm == 0x348) { // UBFM (64 bits)
+                if (imms == 63) {
+                    execute_lsl(instr); // LSL (UBFM Xd, Xn, #(-sh) MOD 64, #63)
+                } else if (immr == 0 && imms < 63) {
+                    execute_lsr(instr); // LSR (UBFM Xd, Xn, #sh, #(N-1))
+                }
             }
             else {
                 printf("Instrucción desconocida: 0x%08X\n", instr);
