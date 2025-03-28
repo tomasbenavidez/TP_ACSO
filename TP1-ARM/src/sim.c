@@ -472,6 +472,7 @@ void execute_bcond(uint32_t instr) {
 
         default:
             printf("Condición desconocida: 0x%X\n", cond);
+            NEXT_STATE.PC = CURRENT_STATE.PC + 4;
             exit(1);
 
     }
