@@ -49,8 +49,6 @@ EOF
     awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_rdump_output
     awk '/memdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_memdump_output
 
-    # Añadir espacio en blanco para la legibilidad entre pruebas
-    echo ""
 
     # Ejecutar el simulador paso a paso y guardar la salida
     echo "Ejecutando paso a paso en sim_x86 para $file_name..."
