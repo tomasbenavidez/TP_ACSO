@@ -100,10 +100,9 @@ void decode_instruction(uint32_t instr) {
             // 🟩 Shift (Immediate) - LSL/LSR (aliases de UBFM)
             else if ((instr >> 22) == 0b110100101) {
                 execute_lsl(instr); // LSL
-            } else if ((instr >> 22) == 0b110100100) {
-                execute_lsr(instr); // LSR
+            } else if ((instr >> 23) == 0b110100100) {
+                execute_lsl(instr);
             }
-
             else {
                 printf("Instrucción desconocida: 0x%08X\n", instr);
                 exit(1);
@@ -484,8 +483,6 @@ void execute_bcond(uint32_t instr) {
 
 //funciona
 void execute_movz(uint32_t instr) {
-    //movz X1, 10 (descripción: X1 = 10, Solo hay que implementar la condición donde hw = 0, osea 
-    //shift es cero.) 
     uint32_t Rd = instr & 0x1F;
     uint32_t imm16 = (instr >> 5) & 0xFFFF;
     uint32_t hw = (instr >> 21) & 0x3;
