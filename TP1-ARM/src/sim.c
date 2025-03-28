@@ -98,10 +98,10 @@ void decode_instruction(uint32_t instr) {
             }
 
             // 🟩 Shift (Immediate) - LSL/LSR (aliases de UBFM)
-            else if ((instr >> 22) == 0b110100101) {
-                execute_lsl(instr); // LSL
-            } else if ((instr >> 23) == 0b110100100) {
-                execute_lsl(instr);
+            else if (((instr >> 23) == 0b110100100) && ((instr & 0x3F) == 0x3F)) {
+                execute_lsl(instr); // Detecta UBFM cuando actúa como LSL
+            } else if (((instr >> 23) == 0b110100100) && ((instr & 0x3F) == 0x00)) {
+                execute_lsr(instr); // Detecta UBFM cuando actúa como LSR
             }
             else {
                 printf("Instrucción desconocida: 0x%08X\n", instr);
