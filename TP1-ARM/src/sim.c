@@ -425,6 +425,7 @@ void execute_br(uint32_t instr) {
     printf("BR X%d\n", Rn);
 }
 
+// Funciona
 void execute_bcond(uint32_t instr) {
     uint32_t cond = (instr >> 24) & 0xF; // Obtener el código de condición de 4 bits
     int32_t imm19 = (instr & 0x00FFFFE0); // Los primeros 19 bits del inmediato

@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# Ejecutar un comando y guardar la salida en variables
-echo "Ejecutando comando 1..."
-#primero verificar que este en la posicion correcta
+# Verificar que estemos en la posición correcta
 cd src && make && cd ..
 
 # Verificar que ref_sim_x86 exista
@@ -11,53 +9,62 @@ if [ ! -f "./ref_sim_x86" ]; then
     exit 1
 fi
 
-# preguntar por terminal a que archivo se quiere testear
-echo "Ingrese el nombre del archivo a testear"
-read file
+# Carpeta donde se encuentran los archivos .s
+input_folder="inputs"
 
-#chequea si el archivo es .x o .s
-if [[ $file == *.x ]]; then
-    echo "El archivo es un .x"
-elif [[ $file == *.s ]]; then
-    echo "El archivo es un .s"
-    #como es un .s usa el ./inputs/asm2hex
-    ./inputs/asm2hex inputs/$file
-    #cambia el nombre del archivo a .x
-    file=${file%.s}.x
-    #lo guarda en la carpeta de bytecodes
-    mv inputs/$file inputs/bytecodes
-    echo "El archivo fue cambiado a .x"
-else
-    echo "El archivo no es .x ni .s"
-    exit 1
-fi
+# Lista para almacenar los archivos que no coinciden
+non_matching_files=()
 
-#ejecutar el ref_sim_x86 y guardar la salida en ref_output
-./ref_sim_x86 inputs/bytecodes/$file <<EOF > ref_output
+# Iterar sobre todos los archivos .s en la carpeta inputs
+for file in $input_folder/*.s; do
+    # Extraer el nombre del archivo sin la ruta
+    file_name=$(basename "$file")
+    
+    echo "Procesando el archivo: $file_name"
+
+    # Convertir archivo .s a .x usando asm2hex
+    ./inputs/asm2hex "$file"
+    
+    # Cambiar la extensión a .x
+    file_x="${file_name%.s}.x"
+    
+    # Mover el archivo a la carpeta de bytecodes
+    mv "$input_folder/$file_x" "$input_folder/bytecodes"
+
+    # Ejecutar el simulador de referencia y guardar la salida
+    ./ref_sim_x86 "$input_folder/bytecodes/$file_x" <<EOF > ref_output
 go
 rdump
 q
 EOF
 
+    # Filtrar la salida después de rdump para ref_sim_x86
+    awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_rdump_output
 
-# Filtrar la salida después de rdump para ref_sim_x86
-awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_rdump_output
-
-
-#ejecutar el sim_x86 y guardar la salida en output
-./src/sim inputs/bytecodes/$file <<EOF > my_output
+    # Ejecutar el simulador y guardar la salida
+    ./src/sim "$input_folder/bytecodes/$file_x" <<EOF > my_output
 go
 rdump
 q
 EOF
 
-# Filtrar la salida después de rdump para sim_x86
-awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' my_output > my_rdump_output
+    # Filtrar la salida después de rdump para sim_x86
+    awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' my_output > my_rdump_output
 
-#comparar las salidas
-echo "Comparando salidas..."
-if diff ref_rdump_output my_rdump_output > /dev/null; then
-    echo "Las salidas son iguales."
+    # Comparar las salidas
+    echo "Comparando salidas para $file_name..."
+    if ! diff ref_rdump_output my_rdump_output > /dev/null; then
+        # Si las salidas no coinciden, agregar el archivo a la lista de no coincidentes
+        non_matching_files+=("$file_name")
+    fi
+done
+
+# Si hay archivos que no coinciden, mostrarlos
+if [ ${#non_matching_files[@]} -gt 0 ]; then
+    echo "Los siguientes archivos no coinciden:"
+    for file in "${non_matching_files[@]}"; do
+        echo "$file"
+    done
 else
-    echo "Las salidas son diferentes."
+    echo "Todos los archivos pasaron la prueba."
 fi
