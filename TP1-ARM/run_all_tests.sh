@@ -31,31 +31,50 @@ for file in $input_folder/*.s; do
     # Mover el archivo a la carpeta de bytecodes
     mv "$input_folder/$file_x" "$input_folder/bytecodes"
 
-    # Ejecutar el simulador de referencia y guardar la salida
-    ./ref_sim_x86 "$input_folder/bytecodes/$file_x" <<EOF > ref_output
-go
-rdump
-q
-EOF
+    # Contar el número de instrucciones en el archivo .x
+    instruction_count=$(wc -l < "$input_folder/bytecodes/$file_x")
+    echo "El archivo $file_x tiene $instruction_count instrucciones."
 
-    # Filtrar la salida después de rdump para ref_sim_x86
+    # Ejecutar el simulador de referencia paso a paso y guardar la salida
+    echo "Ejecutando paso a paso en ref_sim_x86 para $file_name..."
+    for ((i=1; i<=instruction_count; i++)); do
+        ./ref_sim_x86 "$input_folder/bytecodes/$file_x" <<EOF > ref_output
+r1
+rdump
+memdump
+EOF
+    done
+
+    # Filtrar la salida después de rdump y memdump para ref_sim_x86
     awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_rdump_output
+    awk '/memdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' ref_output > ref_memdump_output
 
-    # Ejecutar el simulador y guardar la salida
-    ./src/sim "$input_folder/bytecodes/$file_x" <<EOF > my_output
-go
+    # Ejecutar el simulador paso a paso y guardar la salida
+    echo "Ejecutando paso a paso en sim_x86 para $file_name..."
+    for ((i=1; i<=instruction_count; i++)); do
+        ./src/sim "$input_folder/bytecodes/$file_x" <<EOF > my_output
+r1
 rdump
-q
+memdump
 EOF
+    done
 
-    # Filtrar la salida después de rdump para sim_x86
+    # Filtrar la salida después de rdump y memdump para sim_x86
     awk '/rdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' my_output > my_rdump_output
+    awk '/memdump/{flag=1; next} /ARM-SIM>/{flag=0} flag' my_output > my_memdump_output
 
-    # Comparar las salidas
-    echo "Comparando salidas para $file_name..."
+    # Comparar las salidas de rdump
+    echo "Comparando rdump para $file_name..."
     if ! diff ref_rdump_output my_rdump_output > /dev/null; then
-        # Si las salidas no coinciden, agregar el archivo a la lista de no coincidentes
-        non_matching_files+=("$file_name")
+        # Si las salidas de rdump no coinciden, agregar el archivo a la lista de no coincidentes
+        non_matching_files+=("$file_name (rdump)")
+    fi
+
+    # Comparar las salidas de memdump
+    echo "Comparando memdump para $file_name..."
+    if ! diff ref_memdump_output my_memdump_output > /dev/null; then
+        # Si las salidas de memdump no coinciden, agregar el archivo a la lista de no coincidentes
+        non_matching_files+=("$file_name (memdump)")
     fi
 done
 
